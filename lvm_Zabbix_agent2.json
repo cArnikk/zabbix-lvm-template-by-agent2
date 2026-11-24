@@ -1,0 +1,1132 @@
+{
+    "zabbix_export": {
+        "version": "8.0",
+        "template_groups": [
+            {
+                "uuid": "7df96b18c230490a9a0a9e2307226338",
+                "name": "Templates"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "f698a97d22344cb78af2d44d821dc065",
+                "template": "LVM by Zabbix Agent2",
+                "name": "LVM by Zabbix Agent2",
+                "description": "https://github.com/cArnikk/zabbix-lvm-template-by-agent2",
+                "groups": [
+                    {
+                        "name": "Templates"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "5ce483468a3b43d1b36fb5f60b19ce19",
+                        "name": "LVM: data raw",
+                        "key": "lvm.get",
+                        "history": "1h",
+                        "value_type": "JSON",
+                        "description": "Collects LVM storage information from the monitored Linux host using the pvs, lvs and vgs commands.\n\nReturns a consolidated JSON document containing three datasets:\n\n- Physical Volumes (PVs)\n- Logical Volumes (LVs)\n- Volume Groups (VGs)\n\nCollected information includes device paths, volume relationships, metadata formats, attributes, allocation status, capacity, available space, UUIDs and Logical Volume properties.",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lvm"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "raw"
+                            }
+                        ]
+                    }
+                ],
+                "discovery_rules": [
+                    {
+                        "uuid": "f7cbd6b650334a779fd1a611e7fd34e2",
+                        "name": "LVM: Logical volumes discovery",
+                        "type": "DEPENDENT",
+                        "key": "lvm.lv.discovery",
+                        "filter": {
+                            "evaltype": "AND",
+                            "conditions": [
+                                {
+                                    "macro": "{#LVM_LV}",
+                                    "value": "{$LVM.LV.MATCHES}"
+                                },
+                                {
+                                    "macro": "{#LVM_LV}",
+                                    "value": "{$LVM.LV.NOT.MATCHES}",
+                                    "operator": "NOT_MATCHES_REGEX"
+                                }
+                            ]
+                        },
+                        "description": "Discovers all LVM physical volumes available on the monitored host.\n\nReturns physical volume information using the following LLD macros:\n{#LVM_PV} - Physical volume device path.\n{#LVM_VG} - Associated volume group name.",
+                        "item_prototypes": [
+                            {
+                                "uuid": "d867cecb84044a30a38743c3ec3f65bd",
+                                "name": "LVM: [{#LVM_VG}][{#LVM_LV}] Logical volume active",
+                                "type": "DEPENDENT",
+                                "key": "lvm.lv.active[{#LVM_VG}.{#LVM_LV}]",
+                                "description": "Indicates whether the Logical Volume is currently active.\n\nPossible values:\n0 - INACTIVE\n1 - ACTIVE\n2 - UNKNOWN\n\nBased on the activation flag in the LV attribute string.",
+                                "valuemap": {
+                                    "name": "lvm.lv.active"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..lvs[?(@.lv == \"{#LVM_LV}\")].active.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lv"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "logical volume",
+                                        "value": "{#LVM_LV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "ae736df8e3c1417cbfe4e13dbb10c3c0",
+                                "name": "LVM: [{#LVM_VG}][{#LVM_LV}] Logical volume attributes",
+                                "type": "DEPENDENT",
+                                "key": "lvm.lv.attr[{#LVM_VG}.{#LVM_LV}]",
+                                "value_type": "CHAR",
+                                "description": "Returns the raw LVM attribute string of the Logical Volume (LV).\n\nThe attribute string contains information about the Logical Volume type, permissions, allocation, activation and open status.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..lvs[?(@.lv == \"{#LVM_LV}\")].lv_attr.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lv"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "logical volume",
+                                        "value": "{#LVM_LV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "68dc5986b20948d396e39d6153745c7b",
+                                "name": "LVM: [{#LVM_VG}][{#LVM_LV}] Logical volume open",
+                                "type": "DEPENDENT",
+                                "key": "lvm.lv.open[{#LVM_VG}.{#LVM_LV}]",
+                                "description": "Indicates whether the Logical Volume is currently open and in use by the system.\n\nPossible values:\n0 - CLOSED\n1 - OPEN\n2 - UNKNOWN\n\nBased on the open flag in the LV attribute string.",
+                                "valuemap": {
+                                    "name": "lvm.lv.open"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..lvs[?(@.lv == \"{#LVM_LV}\")].open.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lv"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "logical volume",
+                                        "value": "{#LVM_LV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "81037f6224bd4adda98bda2d21fbf3ae",
+                                "name": "LVM: [{#LVM_VG}][{#LVM_LV}] Logical volume origin",
+                                "type": "DEPENDENT",
+                                "key": "lvm.lv.origin[{#LVM_VG}.{#LVM_LV}]",
+                                "value_type": "CHAR",
+                                "description": "Returns the name of the origin Logical Volume associated with the current Logical Volume.\n\nReturns an empty value if the Logical Volume does not have an associated origin.",
+                                "valuemap": {
+                                    "name": "lvm.writable"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..lvs[?(@.lv == \"{#LVM_LV}\")].origin.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lv"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "logical volume",
+                                        "value": "{#LVM_LV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "2df18e938f674a858b66c818abda69d4",
+                                "name": "LVM: [{#LVM_VG}][{#LVM_LV}] Logical volume size",
+                                "type": "DEPENDENT",
+                                "key": "lvm.lv.sizebytes[{#LVM_VG}.{#LVM_LV}]",
+                                "units": "B",
+                                "description": "Returns the total allocated size of the Logical Volume in bytes.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..lvs[?(@.lv == \"{#LVM_LV}\")].lv_size.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lv"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "logical volume",
+                                        "value": "{#LVM_LV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "deba3e61c75c43809df2a5df34311294",
+                                "name": "LVM: [{#LVM_VG}][{#LVM_LV}] Logical volume type",
+                                "type": "DEPENDENT",
+                                "key": "lvm.lv.type_code[{#LVM_VG}.{#LVM_LV}]",
+                                "value_type": "CHAR",
+                                "description": "Returns the Logical Volume type code extracted from the LV attribute string.\n\nThe type code represents the Logical Volume type according to the LVM attribute format.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..lvs[?(@.lv == \"{#LVM_LV}\")].type_code.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lv"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "logical volume",
+                                        "value": "{#LVM_LV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "6373d22cb5ba4aee89e7f41f96852016",
+                                "name": "LVM: [{#LVM_VG}][{#LVM_LV}] Logical volume writable",
+                                "type": "DEPENDENT",
+                                "key": "lvm.lv.writable[{#LVM_VG}.{#LVM_LV}]",
+                                "description": "Indicates whether the Logical Volume allows write operations.\n\nPossible values:\n0 - READ ONLY\n1 - WRITABLE\n2 - UNKNOWN\n\nBased on the permissions flag in the LV attribute string.",
+                                "valuemap": {
+                                    "name": "lvm.writable"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..lvs[?(@.lv == \"{#LVM_LV}\")].writable.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lv"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "logical volume",
+                                        "value": "{#LVM_LV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "lvm.get"
+                        },
+                        "lld_macro_paths": [
+                            {
+                                "lld_macro": "{#LVM_LV}",
+                                "path": "$..lv.first()"
+                            },
+                            {
+                                "lld_macro": "{#LVM_VG}",
+                                "path": "$..vg.first()"
+                            }
+                        ],
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$..lvs.first()"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9e8bf38dc6114d9e9c23fa681387ca6c",
+                        "name": "LVM: Physical volume discovery",
+                        "type": "DEPENDENT",
+                        "key": "lvm.pv.discovery",
+                        "filter": {
+                            "evaltype": "AND",
+                            "conditions": [
+                                {
+                                    "macro": "{#LVM_PV}",
+                                    "value": "{$LVM.PV.MATCHES}"
+                                },
+                                {
+                                    "macro": "{#LVM_PV}",
+                                    "value": "{$LVM.PV.NOT.MATCHES}",
+                                    "operator": "NOT_MATCHES_REGEX"
+                                }
+                            ]
+                        },
+                        "description": "Discovers all LVM physical volumes available on the monitored host.\n\nReturns physical volume information using the following LLD macros:\n{#LVM_PV} - Physical volume device path.\n{#LVM_VG} - Associated volume group name.\n{#LVM_PV_UUID} - Physical volume UUID.",
+                        "item_prototypes": [
+                            {
+                                "uuid": "6c6ab4a7eac74e73970287f88be03210",
+                                "name": "LVM: [{#LVM_PV}] Physical volume allocatable",
+                                "type": "DEPENDENT",
+                                "key": "lvm.pv.allocatable[{#LVM_PV}]",
+                                "description": "Indicates whether the Physical Volume is available for Logical Volume allocation.\n\nPossible values:\n0 - NOT ALLOCATABLE\n1 - ALLOCATABLE\n2 - UNKNOWN",
+                                "valuemap": {
+                                    "name": "lvm.pv.allocatable"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..pvs[?(@.pv == \"{#LVM_PV}\")].allocatable.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "pv"
+                                    },
+                                    {
+                                        "tag": "physical volume",
+                                        "value": "{#LVM_PV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "a818ecee586b483dbfac2e2895c3813c",
+                                "name": "LVM: [{#LVM_PV}] Physical volume attributes",
+                                "type": "DEPENDENT",
+                                "key": "lvm.pv.attr[{#LVM_PV}]",
+                                "value_type": "CHAR",
+                                "description": "Returns the raw LVM attribute string of the Physical Volume.\n\nThe attribute string contains information about the PV status and allocation properties.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..pvs[?(@.pv == \"{#LVM_PV}\")].attr.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "pv"
+                                    },
+                                    {
+                                        "tag": "physical volume",
+                                        "value": "{#LVM_PV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "5ea790e1283444938401bbc0e90c576e",
+                                "name": "LVM: [{#LVM_PV}] Physical volume format",
+                                "type": "DEPENDENT",
+                                "key": "lvm.pv.fmt[{#LVM_PV}]",
+                                "value_type": "CHAR",
+                                "description": "Returns the metadata format used by the Physical Volume.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..pvs[?(@.pv == \"{#LVM_PV}\")].fmt.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "pv"
+                                    },
+                                    {
+                                        "tag": "physical volume",
+                                        "value": "{#LVM_PV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "37815732fba740e9a861c6aa085fe053",
+                                "name": "LVM: [{#LVM_PV}] Physical volume free space",
+                                "type": "DEPENDENT",
+                                "key": "lvm.pv.freebytes[{#LVM_PV}]",
+                                "units": "B",
+                                "description": "Returns the amount of unallocated space available on the Physical Volume in bytes.\n\nRepresents free Physical Volume extents available for allocation within the associated Volume Group.",
+                                "valuemap": {
+                                    "name": "lvm.pv.allocatable"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..pvs[?(@.pv == \"{#LVM_PV}\")].freebytes.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "pv"
+                                    },
+                                    {
+                                        "tag": "physical volume",
+                                        "value": "{#LVM_PV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "4370b1408e0e41659ceda8b562f8ffb8",
+                                "name": "LVM: [{#LVM_PV}] Physical volume UUID",
+                                "type": "DEPENDENT",
+                                "key": "lvm.pv.pvuuid[{#LVM_PV}]",
+                                "value_type": "CHAR",
+                                "description": "Returns the Universally Unique Identifier (UUID) assigned to the Physical Volume.\n\nThe UUID uniquely identifies the Physical Volume independently of its device path.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..pvs[?(@.pv == \"{#LVM_PV}\")].pvuuid.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "pv"
+                                    },
+                                    {
+                                        "tag": "physical volume",
+                                        "value": "{#LVM_PV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "37b1b03ba1494c16ad4e46f5474fda07",
+                                "name": "LVM: [{#LVM_PV}] Physical volume size",
+                                "type": "DEPENDENT",
+                                "key": "lvm.pv.sizebytes[{#LVM_PV}]",
+                                "units": "B",
+                                "description": "Returns the total capacity of the Physical Volume in bytes.",
+                                "valuemap": {
+                                    "name": "lvm.pv.allocatable"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..pvs[?(@.pv == \"{#LVM_PV}\")].sizebytes.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "pv"
+                                    },
+                                    {
+                                        "tag": "physical volume",
+                                        "value": "{#LVM_PV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "7284756339864ea9a4ca4c15b16279fd",
+                                "name": "LVM: [{#LVM_PV}] Associated volume group",
+                                "type": "DEPENDENT",
+                                "key": "lvm.pv.vg[{#LVM_PV}]",
+                                "value_type": "CHAR",
+                                "description": "Returns the name of the Volume Group (VG) associated with the Physical Volume (PV).\n\nReturns an empty value if the Physical Volume is not assigned to any Volume Group.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..pvs[?(@.pv == \"{#LVM_PV}\")].vg.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "pv"
+                                    },
+                                    {
+                                        "tag": "physical volume",
+                                        "value": "{#LVM_PV}"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "lvm.get"
+                        },
+                        "lld_macro_paths": [
+                            {
+                                "lld_macro": "{#LVM_PV_UUID}",
+                                "path": "$..pvuuid.first()"
+                            },
+                            {
+                                "lld_macro": "{#LVM_PV}",
+                                "path": "$..pv.first()"
+                            },
+                            {
+                                "lld_macro": "{#LVM_VG}",
+                                "path": "$..vg.first()"
+                            }
+                        ],
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$..pvs.first()"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c30af1fa64c040fdb92285a1cd60147f",
+                        "name": "LVM: Volume group discovery",
+                        "type": "DEPENDENT",
+                        "key": "lvm.vg.discovery",
+                        "filter": {
+                            "evaltype": "AND",
+                            "conditions": [
+                                {
+                                    "macro": "{#LVM_VG}",
+                                    "value": "{$LVM.VG.MATCHES}"
+                                },
+                                {
+                                    "macro": "{#LVM_VG}",
+                                    "value": "{$LVM.VG.NOT.MATCHES}",
+                                    "operator": "NOT_MATCHES_REGEX"
+                                }
+                            ]
+                        },
+                        "description": "Discovers all LVM physical volumes available on the monitored host.\n\nReturns physical volume information using the following LLD macros:\n{#LVM_PV} - Physical volume device path.\n{#LVM_VG} - Associated volume group name.",
+                        "item_prototypes": [
+                            {
+                                "uuid": "2e1c8762820f47099d347d69b4a0e57b",
+                                "name": "LVM: [{#LVM_VG}] Volume group attributes",
+                                "type": "DEPENDENT",
+                                "key": "lvm.vg.attr[{#LVM_VG}]",
+                                "value_type": "CHAR",
+                                "description": "Returns the raw LVM attribute string of the Volume Group (VG).\n\nThe attribute string contains information about the Volume Group status, permissions and configuration properties.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..vgs[?(@.vg == \"{#LVM_VG}\")].vg_attr.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "vg"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "1a36afc4b0b646f0acdeacbe69f0ad4f",
+                                "name": "LVM: [{#LVM_VG}] Volume group free space",
+                                "type": "DEPENDENT",
+                                "key": "lvm.vg.freebytes[{#LVM_VG}]",
+                                "units": "B",
+                                "description": "Returns the amount of unallocated storage space available in the Volume Group in bytes.\n\nRepresents free Physical Volume extents that can be allocated to Logical Volumes.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..vgs[?(@.vg == \"{#LVM_VG}\")].vg_free.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "vg"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "59dfe1980e704c238c2c80797ff4ea9b",
+                                "name": "LVM: [{#LVM_VG}] Volume group resizable",
+                                "type": "DEPENDENT",
+                                "key": "lvm.vg.resizable[{#LVM_VG}]",
+                                "description": "Indicates whether the Volume Group supports resizing operations.\n\nPossible values:\n0 - NOT RESIZABLE\n1 - RESIZABLE\n2 - UNKNOWN\n\nBased on the resize flag in the VG attribute string.",
+                                "valuemap": {
+                                    "name": "lvm.vg.resizable"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..vgs[?(@.vg == \"{#LVM_VG}\")].resizable.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "vg"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "e5c19fa0683e454e86f442675ac591f2",
+                                "name": "LVM: [{#LVM_VG}] Volume group size",
+                                "type": "DEPENDENT",
+                                "key": "lvm.vg.sizebytes[{#LVM_VG}]",
+                                "units": "B",
+                                "description": "Returns the total capacity of the Volume Group in bytes.\n\nThe value represents the total storage capacity provided by all Physical Volumes assigned to the Volume Group.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..vgs[?(@.vg == \"{#LVM_VG}\")].vg_size.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "vg"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "01b110ec018d4c0b8d7512daa592c86d",
+                                "name": "LVM: [{#LVM_VG}] Volume group writable",
+                                "type": "DEPENDENT",
+                                "key": "lvm.vg.writable[{#LVM_VG}]",
+                                "description": "Indicates whether the Volume Group allows write operations.\n\nPossible values:\n0 - READ ONLY\n1 - WRITABLE\n2 - UNKNOWN\n\nBased on the permissions flag in the VG attribute string.",
+                                "valuemap": {
+                                    "name": "lvm.writable"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$..vgs[?(@.vg == \"{#LVM_VG}\")].writable.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "30m"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "lvm.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "lvm"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "vg"
+                                    },
+                                    {
+                                        "tag": "volume group",
+                                        "value": "{#LVM_VG}"
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "lvm.get"
+                        },
+                        "lld_macro_paths": [
+                            {
+                                "lld_macro": "{#LVM_VG}",
+                                "path": "$..vg.first()"
+                            }
+                        ],
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$..vgs.first()"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$LVM.LV.MATCHES}",
+                        "value": ".*"
+                    },
+                    {
+                        "macro": "{$LVM.LV.NOT.MATCHES}",
+                        "value": "CHANGE_IF_NEEDED"
+                    },
+                    {
+                        "macro": "{$LVM.PV.MATCHES}",
+                        "value": ".*"
+                    },
+                    {
+                        "macro": "{$LVM.PV.NOT.MATCHES}",
+                        "value": "CHANGE_IF_NEEDED"
+                    },
+                    {
+                        "macro": "{$LVM.VG.MATCHES}",
+                        "value": ".*"
+                    },
+                    {
+                        "macro": "{$LVM.VG.NOT.MATCHES}",
+                        "value": "CHANGE_IF_NEEDED"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "a0faa7e83ac5472abec89009810cce73",
+                        "name": "lvm.lv.active",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "inactive"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "active"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "unknown"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "caa722faf51e46fda8b275859d16cdc5",
+                        "name": "lvm.lv.open",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "closed"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "open"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "unknown"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7c462d751f0e42baabc7ed0638722252",
+                        "name": "lvm.pv.allocatable",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "not allocatable"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "allocatable"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "unknown"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9c1a0b0ca17e4aa185d82d485aa77997",
+                        "name": "lvm.vg.resizable",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "not resizable"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "resizable"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "unknown"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a35af69453a4438a8e7a3a377bcc1c23",
+                        "name": "lvm.writable",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "read only"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "writable"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "unknown"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
