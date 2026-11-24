@@ -68,3 +68,5 @@ zabbix_agent2 -t 'lvm.get'
 ```
 
 The result should be a JSON object containing `pvs`, `lvs`, and `vgs` arrays. All three dependent discovery rules and all dependent item prototypes are populated from this one master item using JSONPath preprocessing.
+
+<img width="3365" height="1030" alt="obraz" src="https://github.com/user-attachments/assets/dc26a44e-f7c0-4a1e-93f5-eb88f2f15f9c" />
